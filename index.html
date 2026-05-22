@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fraud Detection in Financial Transactions</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <nav>
+      <h2>FraudShield</h2>
+      <a href="#checker">Check Transaction</a>
+    </nav>
+    <section class="hero-text">
+      <h1>Fraud Detection in Financial Transactions</h1>
+      <p>Check day-to-day payments like UPI, card, wallet, ATM, and net banking transactions using simple fraud-risk logic.</p>
+      <a class="btn" href="#checker">Start Now</a>
+    </section>
+  </header>
+
+  <section class="info">
+    <div class="card">
+      <h3>Day-to-Day Use</h3>
+      <p>Useful for online payment, UPI transfer, ATM withdrawal, and card payment checking.</p>
+    </div>
+    <div class="card">
+      <h3>Fast Prediction</h3>
+      <p>Enter transaction details and get instant normal or fraud result.</p>
+    </div>
+    <div class="card">
+      <h3>Project Ready</h3>
+      <p>You can upload this website directly to GitHub.</p>
+    </div>
+  </section>
+
+  <main id="checker" class="container">
+    <section class="form-box">
+      <h2>Transaction Fraud Checker</h2>
+      <form id="fraudForm">
+        <div class="grid">
+          <label>Amount
+            <input type="number" id="amount" value="45000" required>
+          </label>
+          <label>Transaction Type
+            <select id="type">
+              <option>UPI</option>
+              <option>Card</option>
+              <option>Net Banking</option>
+              <option>ATM</option>
+              <option>Wallet</option>
+            </select>
+          </label>
+          <label>Hour of Day (0-23)
+            <input type="number" id="hour" min="0" max="23" value="23" required>
+          </label>
+          <label>Customer Age
+            <input type="number" id="age" value="22" required>
+          </label>
+          <label>Old Balance
+            <input type="number" id="balance" value="30000" required>
+          </label>
+          <label>Location Risk (0-10)
+            <input type="number" id="locationRisk" min="0" max="10" value="9" required>
+          </label>
+          <label>Device Risk (0-10)
+            <input type="number" id="deviceRisk" min="0" max="10" value="8" required>
+          </label>
+          <label>Failed Transactions
+            <input type="number" id="failed" min="0" value="4" required>
+          </label>
+          <label>International Transaction
+            <select id="international">
+              <option value="0">No</option>
+              <option value="1">Yes</option>
+            </select>
+          </label>
+        </div>
+        <button type="submit">Predict Fraud</button>
+      </form>
+    </section>
+
+    <section id="result" class="result hidden"></section>
+  </main>
+
+  <footer>
+    <p>Fraud Detection Website Project | HTML, CSS, JavaScript</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
