@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FraudShield — Fraud Detection in Financial Transactions</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #03080f;
+  --surface: #060d17;
+  --surface2: #091420;
+  --border: #0f2336;
+  --border2: #1a3a55;
+  --red: #ff2d55;
+  --red-dim: rgba(255,45,85,0.15);
+  --amber: #ffaa00;
+  --amber-dim: rgba(255,170,0,0.12);
+  --green: #00e676;
+  --green-dim: rgba(0,230,118,0.12);
+  --blue: #00b4ff;
+  --blue-dim: rgba(0,180,255,0.1);
+  --text: #c8dce8;
+  --muted: #3a5a70;
+  --scan: rgba(0,180,255,0.04);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* Scan line animation */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    var(--scan) 2px,
+    var(--scan) 4px
+  );
+  pointer-events:none;
+  z-index:999;
+  animation: scanMove 8s linear infinite;
+}
+@keyframes scanMove {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 100px; }
+}
+
+/* Moving scan beam */
+.scan-beam {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  opacity: 0.4;
+  z-index: 998;
+  animation: beamDown 6s linear infinite;
+  pointer-events: none;
+}
+@keyframes beamDown {
+  0%   { top: -2px; }
+  100% { top: 100vh; }
+}
+
+/* NAV */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(3,8,15,0.96);
+  border-bottom: 1px solid var(--border2);
+  backdrop-filter: blur(16px);
+  padding: 0 32px;
+}
+.nav-inner {
+  max-width: 1400px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 56px;
+}
+.logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: var(--blue);
+  text-shadow: 0 0 20px rgba(0,180,255,0.5);
+}
+.logo span { color: var(--red); }
+.nav-status {
+  display: flex; gap: 24px; align-items: center;
+}
+.status-dot {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: blink 2s ease-in-out infinite;
+}
+.dot.red { background: var(--red); box-shadow: 0 0 8px var(--red); }
+@keyframes blink {
+  0%,100%{ opacity:1; } 50%{ opacity:0.3; }
+}
+.threat-level {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  padding: 3px 10px;
+  letter-spacing: 2px;
+  animation: pulse-amber 3s ease-in-out infinite;
+}
+@keyframes pulse-amber {
+  0%,100%{ box-shadow:none; }
+  50%{ box-shadow: 0 0 12px rgba(255,170,0,0.3); }
+}
+
+/* MAIN LAYOUT */
+.shell {
+  max-width: 1400px; margin: 0 auto; padding: 24px 32px;
+}
+
+/* HERO BAR */
+.hero-bar {
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  padding: 32px 40px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-bar::before {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0; height:2px;
+  background: linear-gradient(90deg, var(--red), var(--blue), var(--green));
+}
+.hero-inner {
+  display: flex; align-items: center; justify-content: space-between; gap: 32px;
+}
+.hero-text h1 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(22px, 3vw, 38px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  line-height: 1.2;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(0,180,255,0.3);
+  margin-bottom: 8px;
+}
+.hero-text h1 span { color: var(--red); }
+.hero-text p {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  line-height: 1.8;
+  max-width: 500px;
+}
+.hero-counter {
+  text-align: right; flex-shrink: 0;
+}
+.counter-num {
+  font-family: 'Orbitron', monospace;
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--red);
+  text-shadow: 0 0 30px rgba(255,45,85,0.5);
+  line-height: 1;
+  letter-spacing: 2px;
+}
+.counter-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+/* STATS ROW */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.stat-card:hover { border-color: var(--border2); }
+.stat-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.blue::after { background: var(--blue); }
+.stat-card.green::after { background: var(--green); }
+.stat-card.red::after { background: var(--red); }
+.stat-card.amber::after { background: var(--amber); }
+.stat-icon {
+  font-size: 20px; margin-bottom: 8px; display: block;
+}
+.stat-num {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-card.blue .stat-num { color: var(--blue); }
+.stat-card.green .stat-num { color: var(--green); }
+.stat-card.red .stat-num { color: var(--red); }
+.stat-card.amber .stat-num { color: var(--amber); }
+.stat-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* MAIN GRID */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* TRANSACTION SCANNER */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.panel-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: var(--blue);
+  text-transform: uppercase;
+}
+.panel-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 2px 8px;
+  border: 1px solid;
+}
+.badge-green { color: var(--green); border-color: var(--green); }
+.badge-red { color: var(--red); border-color: var(--red); animation: blink 1.5s infinite; }
+.badge-amber { color: var(--amber); border-color: var(--amber); }
+
+/* TRANSACTION FORM */
+.tx-form { padding: 24px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.form-row.tri { grid-template-columns: 1fr 1fr 1fr; }
+.field label {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.field input, .field select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(0,180,255,0.1);
+}
+.field input::placeholder { color: var(--muted); }
+
+/* Risk sliders */
+.risk-section {
+  padding: 0 24px 24px;
+}
+.risk-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+.risk-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+.risk-row label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  width: 130px; flex-shrink: 0;
+}
+.risk-row input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--border2);
+  outline: none;
+  cursor: pointer;
+}
+.risk-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px; height: 12px;
+  background: var(--blue);
+  box-shadow: 0 0 8px var(--blue);
+  cursor: pointer;
+}
+.risk-val {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--blue);
+  width: 38px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* SCAN BUTTON */
+.scan-btn {
+  display: block;
+  width: calc(100% - 48px);
+  margin: 0 24px 24px;
+  background: transparent;
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  padding: 14px;
+  cursor: crosshair;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.scan-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(0,180,255,0.15), transparent);
+  transition: left 0.4s;
+}
+.scan-btn:hover::before { left: 100%; }
+.scan-btn:hover {
+  background: rgba(0,180,255,0.08);
+  box-shadow: 0 0 20px rgba(0,180,255,0.2), inset 0 0 20px rgba(0,180,255,0.05);
+}
+.scan-btn:active { transform: scale(0.99); }
+
+/* RESULT DISPLAY */
+.result-display {
+  margin: 0 24px 24px;
+  border: 1px solid var(--border2);
+  padding: 20px;
+  text-align: center;
+  display: none;
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.result-verdict {
+  font-family: 'Orbitron', monospace;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+}
+.result-score {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+}
+.result-factors {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  text-align: left;
+}
+.result-factor {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  display: flex; gap: 6px; align-items: center;
+}
+.result-factor .fc { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* LIVE FEED */
+.live-feed-panel {}
+.feed-list { padding: 0; max-height: 540px; overflow-y: auto; }
+.feed-list::-webkit-scrollbar { width: 4px; }
+.feed-list::-webkit-scrollbar-track { background: var(--surface2); }
+.feed-list::-webkit-scrollbar-thumb { background: var(--border2); }
+.feed-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+  animation: slideIn 0.3s ease;
+}
+@keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+.feed-item:hover { background: rgba(0,180,255,0.03); }
+.feed-risk {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+}
+.feed-risk.high { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.feed-risk.med { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+.feed-risk.low { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.feed-info { flex:1; min-width:0; }
+.feed-id {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: 1px;
+}
+.feed-meta {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feed-amount {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-align: right;
+}
+.feed-amount.high { color: var(--red); }
+.feed-amount.med { color: var(--amber); }
+.feed-amount.low { color: var(--green); }
+.feed-badge {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  padding: 2px 6px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.feed-badge.fraud { background: var(--red-dim); color: var(--red); border: 1px solid rgba(255,45,85,0.3); }
+.feed-badge.review { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(255,170,0,0.3); }
+.feed-badge.clear { background: var(--green-dim); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+
+/* BOTTOM GRID */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* RADAR CHART */
+canvas { display: block; }
+#radarCanvas { margin: 0 auto; display: block; }
+
+/* METHOD CARDS */
+.method-list { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.method-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  transition: border-color 0.2s;
+}
+.method-item:hover { border-color: var(--border2); }
+.method-icon-box {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.method-info {}
+.method-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.method-desc {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+}
+.method-acc {
+  margin-top: 4px;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  color: var(--blue);
+}
+
+/* ALERT PANEL */
+.alert-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.alert-item {
+  padding: 12px;
+  border-left: 3px solid;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+.alert-item.critical { border-color: var(--red); background: var(--red-dim); }
+.alert-item.warning  { border-color: var(--amber); background: var(--amber-dim); }
+.alert-item.info     { border-color: var(--blue); background: var(--blue-dim); }
+.alert-time {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.alert-msg {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: 0.5px;
+  line-height: 1.5;
+}
+.alert-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 1px;
+  padding: 1px 6px;
+  margin-top: 4px;
+}
+.alert-item.critical .alert-tag { background: var(--red); color: #000; }
+.alert-item.warning  .alert-tag { background: var(--amber); color: #000; }
+.alert-item.info     .alert-tag { background: var(--blue); color: #000; }
+
+/* DISCLAIMER */
+.disclaimer {
+  border: 1px solid rgba(255,170,0,0.2);
+  background: rgba(255,170,0,0.04);
+  padding: 16px 20px;
+  display: flex; gap: 14px; align-items: flex-start;
+  margin-bottom: 24px;
+}
+.disclaimer-icon { color: var(--amber); font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.disclaimer-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+}
+.disclaimer-text strong { color: var(--amber); letter-spacing: 2px; }
+
+footer {
+  text-align: center;
+  padding: 20px;
+  border-top: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 3px;
+}
+
+@media(max-width: 1100px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .bottom-grid { grid-template-columns: 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+}
+@media(max-width: 600px) {
+  .shell { padding: 12px 16px; }
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .form-row { grid-template-columns: 1fr; }
+  .form-row.tri { grid-template-columns: 1fr; }
+  .hero-inner { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<div class="scan-beam"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">FRAUD<span>SHIELD</span></div>
+    <div class="nav-status">
+      <div class="status-dot"><div class="dot"></div>SYSTEM ONLINE</div>
+      <div class="status-dot"><div class="dot red"></div>3 ACTIVE THREATS</div>
+      <div class="threat-level">THREAT: MODERATE</div>
+    </div>
+  </div>
+</nav>
+
+<div class="shell">
+
+  <!-- HERO BAR -->
+  <div class="hero-bar">
+    <div class="hero-inner">
+      <div class="hero-text">
+        <h1>FRAUD DETECTION IN<br><span>FINANCIAL TRANSACTIONS</span></h1>
+        <p>// REAL-TIME AI MONITORING ENGINE · ANOMALY DETECTION · BEHAVIORAL ANALYSIS<br>
+           // PROTECTING TRANSACTIONS ACROSS 140+ FINANCIAL INSTITUTIONS GLOBALLY</p>
+      </div>
+      <div class="hero-counter">
+        <div class="counter-num" id="fraudCounter">00,000</div>
+        <div class="counter-label">FRAUDULENT TXs BLOCKED TODAY</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card blue">
+      <span class="stat-icon">⚡</span>
+      <div class="stat-num">2.4ms</div>
+      <div class="stat-label">Avg Detection Time</div>
+    </div>
+    <div class="stat-card green">
+      <span class="stat-icon">🛡️</span>
+      <div class="stat-num">99.7%</div>
+      <div class="stat-label">Detection Accuracy</div>
+    </div>
+    <div class="stat-card red">
+      <span class="stat-icon">⚠️</span>
+      <div class="stat-num">0.3%</div>
+      <div class="stat-label">False Positive Rate</div>
+    </div>
+    <div class="stat-card amber">
+      <span class="stat-icon">💰</span>
+      <div class="stat-num">$4.2B</div>
+      <div class="stat-label">Losses Prevented</div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- TRANSACTION SCANNER -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">// TRANSACTION SCANNER</div>
+        <div class="panel-badge badge-green">READY</div>
+      </div>
+
+      <div class="tx-form">
+        <div class="form-row">
+          <div class="field">
+            <label>Transaction ID</label>
+            <input type="text" id="txId" placeholder="TXN-0000-0000" />
+          </div>
+          <div class="field">
+            <label>Amount (USD)</label>
+            <input type="number" id="txAmount" placeholder="0.00" min="0" />
+          </div>
+        </div>
+        <div class="form-row tri">
+          <div class="field">
+            <label>Transaction Type</label>
+            <select id="txType">
+              <option>Wire Transfer</option>
+              <option>Card Payment</option>
+              <option>ACH Transfer</option>
+              <option>Crypto Exchange</option>
+              <option>Cash Withdrawal</option>
+              <option>Online Purchase</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Origin Country</label>
+            <select id="txOrigin">
+              <option>United States</option>
+              <option>United Kingdom</option>
+              <option>Nigeria</option>
+              <option>Russia</option>
+              <option>China</option>
+              <option>Germany</option>
+              <option>Brazil</option>
+              <option>Unknown</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Time of Day</label>
+            <select id="txTime">
+              <option>Business Hours</option>
+              <option>Evening</option>
+              <option>Late Night (2–5AM)</option>
+              <option>Early Morning</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label>Merchant Category</label>
+            <select id="txMerchant">
+              <option>Retail / E-Commerce</option>
+              <option>Gambling / Betting</option>
+              <option>Cryptocurrency</option>
+              <option>Jewelry / Luxury</option>
+              <option>Gas Station</option>
+              <option>Supermarket</option>
+              <option>Money Transfer</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Account Age</label>
+            <select id="txAge">
+              <option>Less than 30 days</option>
+              <option>1–6 months</option>
+              <option>6–24 months</option>
+              <option>Over 2 years</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="risk-section">
+        <div class="risk-title">// BEHAVIORAL RISK SIGNALS</div>
+        <div class="risk-row">
+          <label>Velocity (tx/hour)</label>
+          <input type="range" id="rVelocity" min="1" max="50" value="3" oninput="document.getElementById('vVelocity').textContent=this.value">
+          <span class="risk-val" id="vVelocity">3</span>
+        </div>
+        <div class="risk-row">
+          <label>Device Trust Score</label>
+          <input type="range" id="rDevice" min="0" max="100" value="75" oninput="document.getElementById('vDevice').textContent=this.value+'%'">
+          <span class="risk-val" id="vDevice">75%</span>
+        </div>
+        <div class="risk-row">
+          <label>Geo Anomaly Score</label>
+          <input type="range" id="rGeo" min="0" max="100" value="20" oninput="document.getElementById('vGeo').textContent=this.value">
+          <span class="risk-val" id="vGeo">20</span>
+        </div>
+        <div class="risk-row">
+          <label>Network Risk Index</label>
+          <input type="range" id="rNetwork" min="0" max="100" value="15" oninput="document.getElementById('vNetwork').textContent=this.value">
+          <span class="risk-val" id="vNetwork">15</span>
+        </div>
+      </div>
+
+      <button class="scan-btn" onclick="runScan()">◈ INITIATE FRAUD SCAN</button>
+
+      <div class="result-display" id="resultDisplay">
+        <div class="result-verdict" id="resultVerdict">—</div>
+        <div class="result-score" id="resultScore">—</div>
+        <div class="result-factors" id="resultFactors"></div>
+      </div>
+    </div>
+
+    <!-- LIVE FEED -->
+    <div class="panel live-feed-panel">
+      <div class="panel-header">
+        <div class="panel-title">// LIVE TRANSACTION FEED</div>
+        <div class="panel-badge badge-red">● LIVE</div>
+      </div>
+      <div class="feed-list" id="feedList"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="bottom-grid">
+
+    <!-- RADAR -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">// THREAT RADAR</div>
+        <div class="panel-badge badge-amber">MONITORING</div>
+      </div>
+      <div style="padding: 20px;">
+        <canvas id="radarCanvas" width="300" height="300"></canvas>
+      </div>
+    </div>
+
+    <!-- METHODS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">// DETECTION METHODS</div>
+        <div class="panel-badge badge-green">ACTIVE</div>
+      </div>
+      <div class="method-list">
+        <div class="method-item">
+          <div class="method-icon-box">🧠</div>
+          <div class="method-info">
+            <div class="method-name">Deep Neural Network</div>
+            <div class="method-desc">LSTM + transformer layers trained on 50M+ labeled transactions. Detects temporal spending pattern deviations.</div>
+            <div class="method-acc">98.2% ACC</div>
+          </div>
+        </div>
+        <div class="method-item">
+          <div class="method-icon-box">🌐</div>
+          <div class="method-info">
+            <div class="method-name">Graph Analytics</div>
+            <div class="method-desc">Maps relationships between accounts, devices, and IPs to uncover fraud rings and money mule networks.</div>
+            <div class="method-acc">91.7% ACC</div>
+          </div>
+        </div>
+        <div class="method-item">
+          <div class="method-icon-box">📐</div>
+          <div class="method-info">
+            <div class="method-name">Anomaly Detection</div>
+            <div class="method-desc">Isolation Forest + Autoencoder models flag statistical outliers in transaction feature space.</div>
+            <div class="method-acc">87.4% ACC</div>
+          </div>
+        </div>
+        <div class="method-item">
+          <div class="method-icon-box">📋</div>
+          <div class="method-info">
+            <div class="method-name">Rule Engine</div>
+            <div class="method-desc">300+ expert-curated rules covering AML, velocity checks, blocklists, and geographic risk policies.</div>
+            <div class="method-acc">79.1% ACC</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">// SYSTEM ALERTS</div>
+        <div class="panel-badge badge-red">3 CRITICAL</div>
+      </div>
+      <div class="alert-list" id="alertList">
+        <div class="alert-item critical">
+          <div class="alert-time">14:32:07 UTC</div>
+          <div class="alert-msg">Rapid card testing detected — 47 micro-transactions in 3 minutes from IP 185.220.x.x</div>
+          <span class="alert-tag">CARD TESTING</span>
+        </div>
+        <div class="alert-item critical">
+          <div class="alert-time">14:28:51 UTC</div>
+          <div class="alert-msg">Account takeover attempt: login from new device + $14,200 wire transfer initiated simultaneously</div>
+          <span class="alert-tag">ATO RISK</span>
+        </div>
+        <div class="alert-item warning">
+          <div class="alert-time">14:19:33 UTC</div>
+          <div class="alert-msg">Unusual geo-velocity: same card used in Lagos and London within 38 minutes</div>
+          <span class="alert-tag">GEO ANOMALY</span>
+        </div>
+        <div class="alert-item warning">
+          <div class="alert-time">14:11:02 UTC</div>
+          <div class="alert-msg">High-risk merchant pattern: 6 crypto exchange transactions above $5k within 1 hour</div>
+          <span class="alert-tag">STRUCTURING</span>
+        </div>
+        <div class="alert-item info">
+          <div class="alert-time">13:55:18 UTC</div>
+          <div class="alert-msg">Model retrained on 12,400 new labeled samples. Accuracy improved +0.4%</div>
+          <span class="alert-tag">MODEL UPDATE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    <div class="disclaimer-icon">⚠</div>
+    <div class="disclaimer-text">
+      <strong>EDUCATIONAL SIMULATION ONLY</strong> — All transaction data, alerts, and results displayed are simulated for demonstration purposes. This system does not perform real financial fraud detection and should not be used for actual security or compliance decisions. Real fraud detection systems require rigorous regulatory compliance, audited models, and licensed financial infrastructure.
+    </div>
+  </div>
+
+</div>
+
+<footer>FRAUDSHIELD v4.1.0 · EDUCATIONAL SIMULATION · NOT FOR PRODUCTION USE</footer>
+
+<script>
+// ---- FRAUD COUNTER ----
+let fraudCount = 8247;
+function updateCounter() {
+  fraudCount += Math.floor(Math.random() * 3);
+  document.getElementById('fraudCounter').textContent =
+    fraudCount.toLocaleString().padStart(6, '0');
+  setTimeout(updateCounter, 800 + Math.random() * 1200);
+}
+updateCounter();
+
+// ---- LIVE FEED ----
+const txTypes = ['Wire Transfer','Card Payment','ACH','Crypto Exchange','Cash Withdrawal','Online Purchase'];
+const countries = ['US','GB','NG','RU','CN','DE','BR','??'];
+const merchants = ['Amazon','Coinbase','Lucky99 Casino','Neiman Marcus','Shell Gas','Walmart','Western Union','Unknown'];
+const riskLevels = [
+  {r:'high',b:'fraud', label:'FRAUD'},
+  {r:'high',b:'fraud', label:'FRAUD'},
+  {r:'med',b:'review', label:'REVIEW'},
+  {r:'med',b:'review', label:'REVIEW'},
+  {r:'low',b:'clear', label:'CLEAR'},
+  {r:'low',b:'clear', label:'CLEAR'},
+  {r:'low',b:'clear', label:'CLEAR'},
+];
+
+function genTxId() {
+  return 'TXN-' + Math.random().toString(36).substr(2,4).toUpperCase() + '-' + Math.random().toString(36).substr(2,4).toUpperCase();
+}
+function genAmount(risk) {
+  if(risk === 'high') return '$' + (Math.random()*15000+500).toFixed(2);
+  if(risk === 'med') return '$' + (Math.random()*3000+100).toFixed(2);
+  return '$' + (Math.random()*500+5).toFixed(2);
+}
+
+function addFeedItem() {
+  const rl = riskLevels[Math.floor(Math.random()*riskLevels.length)];
+  const amount = genAmount(rl.r);
+  const txId = genTxId();
+  const country = countries[Math.floor(Math.random()*countries.length)];
+  const merchant = merchants[Math.floor(Math.random()*merchants.length)];
+  const type = txTypes[Math.floor(Math.random()*txTypes.length)];
+
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `
+    <div class="feed-risk ${rl.r}"></div>
+    <div class="feed-info">
+      <div class="feed-id">${txId}</div>
+      <div class="feed-meta">${type} · ${merchant} · ${country}</div>
+    </div>
+    <div class="feed-amount ${rl.r}">${amount}</div>
+    <div class="feed-badge ${rl.b}">${rl.label}</div>
+  `;
+  const list = document.getElementById('feedList');
+  list.insertBefore(item, list.firstChild);
+  if(list.children.length > 20) list.removeChild(list.lastChild);
+}
+
+// Initial fill
+for(let i=0;i<12;i++) addFeedItem();
+setInterval(addFeedItem, 1400 + Math.random()*1000);
+
+// ---- RADAR CHART ----
+function drawRadar() {
+  const canvas = document.getElementById('radarCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 300, H = 300;
+  const cx = W/2, cy = H/2, maxR = 110;
+  const labels = ['Velocity','Geo Risk','Device','Network','Pattern','Account'];
+  const values = [0.72, 0.45, 0.25, 0.60, 0.38, 0.15];
+  const n = labels.length;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Background rings
+  for(let r=1;r<=4;r++) {
+    ctx.beginPath();
+    for(let i=0;i<n;i++) {
+      const ang = (i/n)*Math.PI*2 - Math.PI/2;
+      const rx = cx + Math.cos(ang)*(maxR*r/4);
+      const ry = cy + Math.sin(ang)*(maxR*r/4);
+      i===0 ? ctx.moveTo(rx,ry) : ctx.lineTo(rx,ry);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(26,58,85,0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Spokes
+  for(let i=0;i<n;i++) {
+    const ang = (i/n)*Math.PI*2 - Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(ang)*maxR, cy + Math.sin(ang)*maxR);
+    ctx.strokeStyle = 'rgba(26,58,85,0.8)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Data fill
+  ctx.beginPath();
+  for(let i=0;i<n;i++) {
+    const ang = (i/n)*Math.PI*2 - Math.PI/2;
+    const rx = cx + Math.cos(ang)*maxR*values[i];
+    const ry = cy + Math.sin(ang)*maxR*values[i];
+    i===0 ? ctx.moveTo(rx,ry) : ctx.lineTo(rx,ry);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(255,45,85,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,45,85,0.7)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Data points
+  for(let i=0;i<n;i++) {
+    const ang = (i/n)*Math.PI*2 - Math.PI/2;
+    const rx = cx + Math.cos(ang)*maxR*values[i];
+    const ry = cy + Math.sin(ang)*maxR*values[i];
+    ctx.beginPath();
+    ctx.arc(rx,ry,4,0,Math.PI*2);
+    ctx.fillStyle = 'var(--red)';
+    ctx.shadowColor = 'var(--red)';
+    ctx.shadowBlur = 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Labels
+  ctx.font = '11px Share Tech Mono';
+  ctx.fillStyle = '#3a5a70';
+  ctx.textAlign = 'center';
+  for(let i=0;i<n;i++) {
+    const ang = (i/n)*Math.PI*2 - Math.PI/2;
+    const rx = cx + Math.cos(ang)*(maxR+20);
+    const ry = cy + Math.sin(ang)*(maxR+20) + 4;
+    ctx.fillText(labels[i].toUpperCase(), rx, ry);
+  }
+}
+drawRadar();
+
+// ---- SCAN ----
+function runScan() {
+  const amount = parseFloat(document.getElementById('txAmount').value) || 1000;
+  const type = document.getElementById('txType').value;
+  const origin = document.getElementById('txOrigin').value;
+  const time = document.getElementById('txTime').value;
+  const merchant = document.getElementById('txMerchant').value;
+  const age = document.getElementById('txAge').value;
+  const velocity = parseInt(document.getElementById('rVelocity').value);
+  const device = parseInt(document.getElementById('rDevice').value);
+  const geo = parseInt(document.getElementById('rGeo').value);
+  const network = parseInt(document.getElementById('rNetwork').value);
+
+  // Score computation
+  let score = 0;
+  if(amount > 10000) score += 25;
+  else if(amount > 3000) score += 12;
+  else if(amount > 500) score += 5;
+
+  const highRiskOrigins = ['Nigeria','Russia','Unknown'];
+  if(highRiskOrigins.includes(origin)) score += 20;
+  if(time === 'Late Night (2–5AM)') score += 18;
+  else if(time === 'Early Morning') score += 8;
+
+  const highRiskMerchants = ['Gambling / Betting','Cryptocurrency','Money Transfer','Jewelry / Luxury'];
+  if(highRiskMerchants.includes(merchant)) score += 15;
+  if(age === 'Less than 30 days') score += 18;
+  else if(age === '1–6 months') score += 8;
+
+  score += (velocity / 50) * 20;
+  score += (100 - device) / 100 * 15;
+  score += geo / 100 * 12;
+  score += network / 100 * 10;
+  score += (Math.random() - 0.5) * 8;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const display = document.getElementById('resultDisplay');
+  const verdict = document.getElementById('resultVerdict');
+  const scoreEl = document.getElementById('resultScore');
+  const factors = document.getElementById('resultFactors');
+
+  display.style.display = 'block';
+
+  let label, color;
+  if(score >= 75) { label='⛔ FRAUD DETECTED'; color='var(--red)'; }
+  else if(score >= 50) { label='⚠ REVIEW REQUIRED'; color='var(--amber)'; }
+  else if(score >= 30) { label='📋 LOW RISK'; color='var(--blue)'; }
+  else { label='✔ CLEAR'; color='var(--green)'; }
+
+  verdict.textContent = label;
+  verdict.style.color = color;
+  display.style.borderColor = color;
+  display.style.background = score>=75 ? 'var(--red-dim)' : score>=50 ? 'var(--amber-dim)' : score>=30 ? 'var(--blue-dim)' : 'var(--green-dim)';
+
+  scoreEl.textContent = `RISK SCORE: ${score}/100 · CONFIDENCE: ${85+Math.floor(Math.random()*13)}%`;
+
+  const factorData = [
+    {label:'Amount Risk', hit: amount>3000, c: amount>10000?'var(--red)':'var(--amber)'},
+    {label:'Geo Risk', hit: highRiskOrigins.includes(origin), c:'var(--red)'},
+    {label:'Time Risk', hit: time.includes('Night')||time.includes('Early'), c:'var(--amber)'},
+    {label:'Merchant Risk', hit: highRiskMerchants.includes(merchant), c:'var(--red)'},
+    {label:'Account Age', hit: age==='Less than 30 days', c:'var(--red)'},
+    {label:'Device Trust', hit: device<50, c:'var(--amber)'},
+    {label:'Velocity', hit: velocity>15, c:'var(--red)'},
+    {label:'Network', hit: network>50, c:'var(--amber)'},
+  ];
+
+  factors.innerHTML = factorData.map(f=>
+    `<div class="result-factor">
+      <div class="fc" style="background:${f.hit?f.c:'var(--green)'}"></div>
+      <span style="color:${f.hit?f.c:'var(--muted)'}">${f.label}</span>
+    </div>`
+  ).join('');
+
+  // Auto-add to feed
+  const rl = score>=75?{r:'high',b:'fraud',label:'FRAUD'}:score>=50?{r:'med',b:'review',label:'REVIEW'}:{r:'low',b:'clear',label:'CLEAR'};
+  const txIdVal = document.getElementById('txId').value || genTxId();
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = `
+    <div class="feed-risk ${rl.r}"></div>
+    <div class="feed-info">
+      <div class="feed-id">${txIdVal} ← SCANNED</div>
+      <div class="feed-meta">${type} · RISK:${score}</div>
+    </div>
+    <div class="feed-amount ${rl.r}">$${amount.toFixed(2)}</div>
+    <div class="feed-badge ${rl.b}">${rl.label}</div>
+  `;
+  const list = document.getElementById('feedList');
+  list.insertBefore(item, list.firstChild);
+}
+</script>
+</body>
+</html>
